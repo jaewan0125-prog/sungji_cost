@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>냉각탑 원가 선정 프로그램</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* Primary blue palette */
+  --primary: #2563EB;
+  --primary-dark: #1D4ED8;
+  --primary-soft: #EFF6FF;
+  --primary-border: #BFDBFE;
+
+  /* Accent colors - subtle */
+  --accent-orange: #F59E0B;
+  --accent-orange-soft: #FFFBEB;
+  --accent-green: #059669;
+  --accent-green-soft: #F0FDF4;
+
+  /* Grayscale */
+  --gray-25: #FCFCFD;
+  --gray-50: #F9FAFB;
+  --gray-100: #F3F4F6;
+  --gray-150: #ECEEF1;
+  --gray-200: #E5E7EB;
+  --gray-300: #D1D5DB;
+  --gray-400: #9CA3AF;
+  --gray-500: #6B7280;
+  --gray-600: #4B5563;
+  --gray-700: #374151;
+  --gray-800: #1F2937;
+  --gray-900: #111827;
+  --red: #DC2626;
+
+  --shadow-xs: 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-sm: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md: 0 4px 8px rgba(15,23,42,0.05), 0 2px 4px rgba(15,23,42,0.04);
+
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+body {
+  font-family: 'Pretendard', 'Malgun Gothic', '맑은 고딕', -apple-system, sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-900);
+  min-height: 100vh;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.container { max-width: 1320px; margin: 0 auto; padding: 24px; }
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  border-radius: var(--radius);
+  padding: 28px 36px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  color: white;
+}
+.header h1 {
+  font-size: 24px; font-weight: 800;
+  color: white;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+.header p {
+  font-size: 13px;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 14px;
+}
+.header-badges {
+  display: flex; gap: 8px;
+  flex-wrap: wrap;
+}
+.badge {
+  background: rgba(255,255,255,0.18);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+
+/* Layout */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
+
+/* Cards */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-200);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-xs);
+  margin-bottom: 16px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gray-150);
+}
+.card-num {
+  width: 24px; height: 24px;
+  background: var(--primary);
+  color: white;
+  border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+
+.form-group { margin-bottom: 14px; }
+.form-group:last-child { margin-bottom: 0; }
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 7px;
+  letter-spacing: 0.1px;
+}
+
+/* Buttons - Type */
+.type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.type-btn {
+  padding: 11px 12px;
+  border: 1px solid var(--gray-200);
+  background: white;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  font-family: inherit;
+}
+.type-btn:hover {
+  border-color: var(--primary-border);
+  background: var(--primary-soft);
+}
+.type-btn.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.type-btn .code {
+  font-size: 12px; font-weight: 700; color: var(--primary-dark);
+  letter-spacing: 0.3px;
+}
+.type-btn .name { font-size: 11px; color: var(--gray-500); margin-top: 1px; }
+
+/* Capacity */
+.capacity-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+}
+.cap-btn {
+  padding: 9px 4px;
+  border: 1px solid var(--gray-200);
+  background: white;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+  font-family: inherit;
+}
+.cap-btn:hover { border-color: var(--primary-border); color: var(--primary); }
+.cap-btn.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+.cap-btn.disabled {
+  opacity: 0.4; cursor: not-allowed;
+  background: var(--gray-50);
+}
+
+/* Quantity */
+.qty-control {
+  display: flex; align-items: center;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  width: fit-content;
+}
+.qty-btn {
+  width: 34px; height: 34px;
+  background: var(--gray-50);
+  border: none;
+  cursor: pointer; font-size: 16px; font-weight: 600;
+  color: var(--gray-700);
+}
+.qty-btn:hover { background: var(--gray-100); color: var(--primary); }
+.qty-input {
+  width: 56px; text-align: center; border: none;
+  font-size: 14px; font-weight: 700;
+  color: var(--gray-900); outline: none;
+  font-family: inherit;
+}
+
+/* Options */
+.options-grid { display: grid; gap: 6px; }
+.option-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 13px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.option-item:hover { border-color: var(--primary-border); background: var(--gray-25); }
+.option-item.checked {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.option-item.disabled {
+  opacity: 0.5; cursor: not-allowed; pointer-events: none;
+  background: var(--gray-50);
+}
+.option-left { display: flex; align-items: center; gap: 10px; }
+.option-checkbox {
+  width: 18px; height: 18px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 5px;
+  background: white;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.option-item.checked .option-checkbox {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.option-checkbox::after {
+  content: ''; width: 5px; height: 9px;
+  border-right: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(45deg) translate(-1px, -1px);
+  opacity: 0;
+}
+.option-item.checked .option-checkbox::after { opacity: 1; }
+.option-name { font-size: 13px; font-weight: 600; color: var(--gray-900); }
+.option-desc { font-size: 11px; color: var(--gray-500); margin-top: 1px; }
+.option-price { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+.option-item.checked .option-price { color: var(--primary-dark); }
+
+/* Inputs */
+.text-input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.15s;
+  background: white;
+  color: var(--gray-900);
+}
+.text-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.text-input[type="number"] { text-align: right; }
+
+.manual-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr;
+  gap: 8px;
+}
+
+/* Preview chip */
+.preview {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+  margin-top: 12px;
+}
+.preview-label { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+.preview-amount { font-size: 14px; font-weight: 700; color: var(--gray-900); }
+
+/* Action bar */
+.action-bar {
+  display: flex; gap: 8px; margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--gray-200);
+}
+.btn {
+  padding: 11px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.12s;
+  font-family: inherit;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  white-space: nowrap;
+}
+.btn-primary {
+  flex: 1;
+  background: var(--primary); color: white;
+  border-color: var(--primary);
+}
+.btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+
+.btn-secondary {
+  background: white; color: var(--gray-700);
+  border-color: var(--gray-200);
+}
+.btn-secondary:hover { background: var(--gray-50); border-color: var(--gray-300); }
+
+.btn-light-orange {
+  background: white; color: var(--accent-orange);
+  border-color: var(--gray-200);
+}
+.btn-light-orange:hover {
+  background: var(--accent-orange-soft);
+  border-color: var(--accent-orange);
+}
+
+.btn-light-green {
+  background: white; color: var(--accent-green);
+  border-color: var(--gray-200);
+}
+.btn-light-green:hover {
+  background: var(--accent-green-soft);
+  border-color: var(--accent-green);
+}
+
+.btn-danger {
+  background: white; color: var(--red);
+  border-color: var(--gray-200);
+}
+.btn-danger:hover { background: #FEF2F2; border-color: #FCA5A5; }
+
+/* Right column container */
+.right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 20px;
+}
+
+/* Cart Card */
+.cart-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+  padding-bottom: 22px;
+}
+.cart-header-bar {
+  background: var(--primary);
+  padding: 16px 22px 14px;
+  color: white;
+}
+.cart-header-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+}
+.cart-title {
+  font-size: 16px; font-weight: 700; color: white;
+  letter-spacing: -0.2px;
+}
+.cart-count-pill {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.22);
+  color: white;
+  padding: 4px 11px;
+  border-radius: 10px;
+}
+.cart-count-pill.has { background: white; color: var(--primary-dark); }
+
+.cart-sub {
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.85);
+}
+
+.cart-body {
+  padding: 16px 22px 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.cart-items {
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+  overflow-y: auto;
+  min-height: 180px;
+  max-height: 360px;
+}
+.cart-items::-webkit-scrollbar { width: 6px; }
+.cart-items::-webkit-scrollbar-track { background: var(--gray-50); }
+.cart-items::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+
+.cart-empty {
+  text-align: center; padding: 32px 16px;
+  color: var(--gray-400);
+}
+.cart-empty .icon-big { font-size: 32px; margin-bottom: 8px; opacity: 0.6; }
+.cart-empty .text { font-size: 12px; line-height: 1.6; }
+
+.cart-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--gray-150);
+  position: relative;
+  transition: background 0.12s;
+}
+.cart-item:last-child { border-bottom: none; }
+.cart-item:hover { background: var(--gray-25); }
+
+.cart-item-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 10px; margin-bottom: 6px;
+}
+.cart-item-title {
+  font-size: 13px; font-weight: 700; line-height: 1.3;
+  color: var(--gray-900);
+}
+.cart-item-qty {
+  font-size: 11px; color: var(--gray-500); margin-top: 2px;
+}
+.cart-item-amount {
+  font-size: 14px; font-weight: 800;
+  color: var(--gray-900);
+  white-space: nowrap;
+}
+.cart-item-detail {
+  font-size: 11px; color: var(--gray-600); line-height: 1.7;
+  background: var(--gray-50);
+  padding: 7px 10px;
+  border-radius: 6px;
+  margin-top: 5px;
+}
+.cart-item-detail .row {
+  display: flex; justify-content: space-between;
+}
+.cart-item-detail .row + .row { margin-top: 1px; }
+.cart-item-remove {
+  position: absolute; top: 10px; right: 10px;
+  width: 20px; height: 20px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  color: var(--gray-500);
+  border-radius: 50%;
+  cursor: pointer; font-size: 11px;
+  display: none;
+  align-items: center; justify-content: center;
+  font-weight: 700;
+}
+.cart-item:hover .cart-item-remove { display: inline-flex; }
+.cart-item-remove:hover {
+  background: #FEF2F2; border-color: #FCA5A5; color: var(--red);
+}
+
+/* Cart summary */
+.cart-summary {
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.summary-row {
+  display: flex; justify-content: space-between;
+  padding: 3px 0; font-size: 12px;
+  color: var(--gray-700);
+}
+.summary-row.total {
+  border-top: 1px solid var(--primary-border);
+  padding-top: 9px; margin-top: 6px;
+  font-size: 15px; font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.cart-footer {
+  display: flex; gap: 8px;
+  flex-shrink: 0;
+  margin-top: 6px;
+  padding: 0 22px;
+}
+.cart-footer .btn { flex: 1; padding: 11px 10px; font-size: 12.5px; }
+
+/* Quote Card */
+.quote-card {
+  background: white;
+  border: 1.5px solid var(--accent-orange);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-xs);
+  flex-shrink: 0;
+}
+.quote-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15px; font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gray-150);
+}
+.quote-title .icon {
+  width: 24px; height: 24px;
+  background: var(--accent-orange-soft);
+  color: var(--accent-orange);
+  border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px;
+}
+.quote-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.quote-label {
+  font-size: 12px; font-weight: 600; color: var(--gray-600);
+}
+.quote-display {
+  font-size: 14px; font-weight: 700; color: var(--gray-900);
+}
+.quote-input {
+  width: 100px;
+  padding: 7px 11px;
+  border: 1px solid var(--gray-200);
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+  font-family: inherit;
+  outline: none;
+  color: var(--gray-900);
+  background: white;
+}
+.quote-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.rounding-section {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-150);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  margin: 12px 0;
+}
+.rounding-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+.rounding-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.round-chk {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 9px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.round-chk:hover { border-color: var(--primary-border); }
+.round-chk.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.round-chk input { display: none; }
+.round-box {
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 4px;
+  background: white;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.round-chk.active .round-box {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.round-box::after {
+  content: ''; width: 4px; height: 7px;
+  border-right: 1.5px solid white;
+  border-bottom: 1.5px solid white;
+  transform: rotate(45deg) translate(-1px, -1px);
+  opacity: 0;
+}
+.round-chk.active .round-box::after { opacity: 1; }
+.round-text {
+  font-size: 11px; font-weight: 600; color: var(--gray-700);
+}
+.round-chk.active .round-text { color: var(--primary-dark); }
+
+.quote-result {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-top: 10px;
+}
+.quote-result-label {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-bottom: 3px;
+  letter-spacing: 0.2px;
+}
+.quote-result-amount {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+.quote-result-amount .unit { font-size: 16px; opacity: 0.85; margin-left: 3px; font-weight: 600; }
+.quote-result-detail {
+  font-size: 10px;
+  opacity: 0.75;
+  margin-top: 4px;
+}
+
+.quote-copy-row {
+  display: flex; gap: 6px;
+  margin-top: 10px;
+}
+.quote-copy-row .btn { flex: 1; padding: 9px; font-size: 12px; }
+
+/* Notes card */
+.notes-card {
+  background: var(--gray-50);
+  border: 1px dashed var(--gray-200);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-top: 16px;
+}
+.notes-title {
+  font-size: 12px; font-weight: 700;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+  letter-spacing: 0.2px;
+}
+.notes-list {
+  font-size: 12px;
+  color: var(--gray-600);
+  line-height: 1.85;
+  list-style: none;
+}
+.notes-list strong { color: var(--gray-900); font-weight: 600; }
+
+/* Info banner - subtle */
+.info-banner {
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 11px;
+  color: var(--gray-600);
+  margin-bottom: 12px;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--gray-900); color: white;
+  padding: 10px 20px; border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  opacity: 0; transition: all 0.25s;
+  z-index: 1000; font-size: 12px; font-weight: 600;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: var(--red); }
+
+/* Animation */
+@keyframes pop { 0% { transform: scale(0.97); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.cart-item { animation: pop 0.2s ease; }
+
+@media print {
+  body { background: white; }
+  .action-bar, .cart-item-remove, .cart-footer, .quote-copy-row { display: none !important; }
+  .right-stack { position: static; max-height: none; }
+  .cart-items { max-height: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>냉각탑 원가 선정 프로그램</h1>
+    <p>2025-2026년 실적 기반 표준 원가 산출 시스템</p>
+    <div class="header-badges">
+      <span class="badge">SJMO · SJMO(A) · SJCO · SJXO</span>
+      <span class="badge">100~1000 CRT</span>
+      <span class="badge">원가 누적 + 견적가 산정</span>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- Left -->
+    <div>
+      <!-- Section 1 -->
+      <div class="card">
+        <div class="card-title">
+          <span class="card-num">1</span>
+          <span>모델 / 용량 / 수량</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">기종 선택</label>
+          <div class="type-grid" id="typeGrid">
+            <button class="type-btn active" data-type="SJMO">
+              <div class="code">SJMO</div>
+              <div class="name">압입모듈형</div>
+            </button>
+            <button class="type-btn" data-type="SJMO(A)">
+              <div class="code">SJMO(A)</div>
+              <div class="name">흡입모듈형</div>
+            </button>
+            <button class="type-btn" data-type="SJCO">
+              <div class="code">SJCO</div>
+              <div class="name">대향류형</div>
+            </button>
+            <button class="type-btn" data-type="SJXO">
+              <div class="code">SJXO</div>
+              <div class="name">직교류형</div>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">용량 (CRT)</label>
+          <div class="capacity-grid" id="capacityGrid"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">수량 (대)</label>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="changeQty(-1)">−</button>
+            <input type="number" class="qty-input" id="qtyInput" value="1" min="1" max="50">
+            <button class="qty-btn" onclick="changeQty(1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2 -->
+      <div class="card">
+        <div class="card-title">
+          <span class="card-num">2</span>
+          <span>옵션 선택</span>
+        </div>
+        <div class="info-banner">
+          본체는 기본 포함되며, 회색 옵션은 해당 모델/용량에서 제공되지 않습니다.
+        </div>
+        <div class="options-grid" id="optionsGrid"></div>
+
+        <div class="preview">
+          <span class="preview-label">현재 선택 단가 (1대 기준)</span>
+          <span class="preview-amount" id="previewAmount">0 원</span>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="addToCart()">＋ 원가 합산 내역에 추가</button>
+          <button class="btn btn-secondary" onclick="resetForm()">↻ 입력 초기화</button>
+        </div>
+      </div>
+
+      <!-- Section 3: Manual -->
+      <div class="card">
+        <div class="card-title">
+          <span class="card-num" style="background:var(--accent-orange);">3</span>
+          <span>직접 입력</span>
+        </div>
+        <div class="info-banner">
+          품명·수량·금액을 직접 입력하여 원가 합산 내역에 추가할 수 있습니다.
+        </div>
+
+        <div class="manual-grid">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">내역 (품명)</label>
+            <input type="text" class="text-input" id="manualName" placeholder="예: 추가 배관공사">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">수량</label>
+            <input type="number" class="text-input" id="manualQty" value="1" min="1" step="1">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">금액 (단가, 원)</label>
+            <input type="number" class="text-input" id="manualAmount" placeholder="0" min="0" step="1000">
+          </div>
+        </div>
+
+        <div class="preview">
+          <span class="preview-label">소계 (수량 × 단가)</span>
+          <span class="preview-amount" id="manualPreview">0 원</span>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="addManualToCart()">＋ 원가 합산 내역에 추가</button>
+          <button class="btn btn-secondary" onclick="resetManualForm()">↻ 입력 초기화</button>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="notes-card">
+        <div class="notes-title">참고사항</div>
+        <ul class="notes-list">
+          <li>· <strong>2025-2026년 실적 데이터</strong>에 기반한 표준 원가입니다</li>
+          <li>· SJMO/SJMO(A)는 100~500CRT, SJCO/SJXO는 100~1000CRT 범위의 데이터가 제공됩니다</li>
+          <li>· 회색 옵션은 데이터가 없는 항목으로 자동 제외됩니다</li>
+          <li>· 일반관리비 15%가 자동 가산되며 부가세는 별도입니다</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Right Column - sticky stack -->
+    <div class="right-stack">
+      <!-- Cart -->
+      <div class="cart-card">
+        <div class="cart-header-bar">
+          <div class="cart-header-row">
+            <span class="cart-title">원가 합산 내역</span>
+            <span class="cart-count-pill" id="cartCountPill">0개</span>
+          </div>
+          <div class="cart-sub" id="cartSub">좌측에서 항목을 추가하면 여기에 표시됩니다</div>
+        </div>
+
+        <div class="cart-body">
+          <div class="cart-items" id="cartItems">
+            <div class="cart-empty">
+              <div class="icon-big">🛒</div>
+              <div class="text">좌측에서 모델을 선택하거나 직접 입력 후<br>「원가 합산 내역에 추가」를 클릭하세요</div>
+            </div>
+          </div>
+
+          <div class="cart-summary" id="cartSummary" style="display:none;">
+            <div class="summary-row">
+              <span>장비/항목 합계</span>
+              <span id="sumEquipment">0 원</span>
+            </div>
+            <div class="summary-row">
+              <span>일반관리비 (15%)</span>
+              <span id="sumOverhead">0 원</span>
+            </div>
+            <div class="summary-row total">
+              <span>총 원가</span>
+              <span id="sumTotal">0 원</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cart-footer">
+          <button class="btn btn-light-orange" onclick="copyToClipboard()">📋 복사</button>
+          <button class="btn btn-light-green" onclick="window.print()">🖨️ 인쇄</button>
+          <button class="btn btn-danger" onclick="clearCart()">🗑️ 비우기</button>
+        </div>
+      </div>
+
+      <!-- Quote -->
+      <div class="quote-card">
+        <div class="quote-title">
+          <span class="icon">💰</span>
+          <span>견적가 산정</span>
+        </div>
+
+        <div class="quote-row">
+          <label class="quote-label">총 원가</label>
+          <div class="quote-display" id="quoteBaseAmount">0 원</div>
+        </div>
+
+        <div class="quote-row">
+          <label class="quote-label" for="divisorInput">나눌 비율 (1 이하)</label>
+          <input type="number" class="quote-input" id="divisorInput" value="0.85"
+                 step="0.01" min="0.01" max="1.0">
+        </div>
+
+        <div class="rounding-section">
+          <div class="rounding-label">절사 옵션</div>
+          <div class="rounding-options">
+            <label class="round-chk active" data-unit="0">
+              <input type="checkbox" checked><span class="round-box"></span><span class="round-text">절사 안 함</span>
+            </label>
+            <label class="round-chk" data-unit="1000000">
+              <input type="checkbox"><span class="round-box"></span><span class="round-text">10만이하 절사</span>
+            </label>
+            <label class="round-chk" data-unit="10000000">
+              <input type="checkbox"><span class="round-box"></span><span class="round-text">100만이하 절사</span>
+            </label>
+            <label class="round-chk" data-unit="100000000">
+              <input type="checkbox"><span class="round-box"></span><span class="round-text">1000만이하 절사</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="quote-result">
+          <div class="quote-result-label">예상 견적가</div>
+          <div class="quote-result-amount"><span id="quoteResult">0</span><span class="unit">원</span></div>
+          <div class="quote-result-detail" id="quoteResultDetail">총 원가와 비율을 입력하세요</div>
+        </div>
+
+        <div class="quote-copy-row">
+          <button class="btn btn-light-orange" onclick="copyQuote()">📋 견적가 복사</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">완료</div>
+
+<script>
+const COST_DATA = {"SJMO":{"100":{"본체":20424000,"백연감소코일":6204000,"소음기":8655000,"인버터판넬":7500000,"사다리":800000,"설치비":1200000,"크레인비":2500000},"125":{"본체":20803500,"백연감소코일":6204000,"소음기":8655000,"인버터판넬":7500000,"사다리":800000,"설치비":1200000,"크레인비":2500000},"150":{"본체":22793000,"백연감소코일":10092000,"소음기":10880000,"인버터판넬":8000000,"사다리":800000,"설치비":1200000,"크레인비":2500000},"175":{"본체":22977000,"백연감소코일":10092000,"소음기":10880000,"인버터판넬":8000000,"사다리":800000,"설치비":1200000,"크레인비":2500000},"200":{"본체":23218500,"백연감소코일":10092000,"소음기":10880000,"인버터판넬":8000000,"사다리":800000,"설치비":1200000,"크레인비":3000000},"225":{"본체":23920000,"백연감소코일":10308000,"소음기":11690000,"인버터판넬":8000000,"사다리":1000000,"설치비":1500000,"크레인비":3000000},"250":{"본체":24828500,"백연감소코일":10788000,"소음기":12500000,"인버터판넬":9000000,"사다리":1000000,"설치비":1500000,"크레인비":3000000},"300":{"본체":25507000,"백연감소코일":10788000,"소음기":12500000,"인버터판넬":9000000,"사다리":1000000,"설치비":1500000,"크레인비":3000000},"350":{"본체":31556000,"백연감소코일":12180000,"소음기":14000000,"인버터판넬":9000000,"사다리":1000000,"설치비":1500000,"크레인비":3500000},"400":{"본체":32303500,"백연감소코일":12180000,"소음기":14000000,"인버터판넬":9000000,"사다리":1000000,"설치비":1500000,"크레인비":3500000},"450":{"본체":33250000,"백연감소코일":13572000,"소음기":15000000,"인버터판넬":9500000,"사다리":1200000,"설치비":1500000,"크레인비":3500000},"500":{"본체":35000000,"백연감소코일":13572000,"소음기":15000000,"인버터판넬":9500000,"사다리":1200000,"설치비":1500000,"크레인비":3500000}},"SJMO(A)":{"100":{"본체":20424000,"백연감소코일":6204000,"소음기":8655000,"인버터판넬":7500000,"사다리":800000,"설치비":1200000,"크레인비":2500000},"125":{"본체":20803500,"백연감소코일":6204000,"소음기":8655000,"인버터판넬":7500000,"사다리":800000,"설치비":1200000,"크레인비":2500000},"150":{"본체":22793000,"백연감소코일":10092000,"소음기":10880000,"인버터판넬":8000000,"사다리":800000,"설치비":1200000,"크레인비":2500000},"175":{"본체":22977000,"백연감소코일":10092000,"소음기":10880000,"인버터판넬":8000000,"사다리":800000,"설치비":1200000,"크레인비":2500000},"200":{"본체":23218500,"백연감소코일":10092000,"소음기":10880000,"인버터판넬":8000000,"사다리":800000,"설치비":1200000,"크레인비":3000000},"225":{"본체":23920000,"백연감소코일":10308000,"소음기":11690000,"인버터판넬":8000000,"사다리":1000000,"설치비":1500000,"크레인비":3000000},"250":{"본체":24828500,"백연감소코일":10788000,"소음기":12500000,"인버터판넬":9000000,"사다리":1000000,"설치비":1500000,"크레인비":3000000},"300":{"본체":25507000,"백연감소코일":10788000,"소음기":12500000,"인버터판넬":9000000,"사다리":1000000,"설치비":1500000,"크레인비":3000000},"350":{"본체":31556000,"백연감소코일":12180000,"소음기":14000000,"인버터판넬":9000000,"사다리":1000000,"설치비":1500000,"크레인비":3500000},"400":{"본체":32303500,"백연감소코일":12180000,"소음기":14000000,"인버터판넬":9000000,"사다리":1000000,"설치비":1500000,"크레인비":3500000},"450":{"본체":33250000,"백연감소코일":13572000,"소음기":15000000,"인버터판넬":9500000,"사다리":1200000,"설치비":1500000,"크레인비":3500000},"500":{"본체":35000000,"백연감소코일":13572000,"소음기":15000000,"인버터판넬":9500000,"사다리":1200000,"설치비":1500000,"크레인비":3500000}},"SJCO":{"100":{"본체":12000000,"백연감소코일":4400000,"토출소음기":6600000,"흡입소음기":null,"극초저소음팬":1500000,"인버터판넬":8000000,"사다리":1000000,"설치비":1300000,"크레인비":null},"125":{"본체":18000000,"백연감소코일":5500000,"토출소음기":7500000,"흡입소음기":null,"극초저소음팬":2000000,"인버터판넬":8500000,"사다리":1000000,"설치비":1300000,"크레인비":null},"150":{"본체":18000000,"백연감소코일":5500000,"토출소음기":7500000,"흡입소음기":null,"극초저소음팬":2000000,"인버터판넬":8500000,"사다리":1000000,"설치비":1300000,"크레인비":null},"175":{"본체":21000000,"백연감소코일":5500000,"토출소음기":8177500,"흡입소음기":null,"극초저소음팬":2500000,"인버터판넬":9000000,"사다리":1000000,"설치비":1300000,"크레인비":null},"200":{"본체":21000000,"백연감소코일":5500000,"토출소음기":8177500,"흡입소음기":null,"극초저소음팬":2500000,"인버터판넬":9000000,"사다리":1000000,"설치비":1300000,"크레인비":null},"225":{"본체":21800000,"백연감소코일":9800000,"토출소음기":8855000,"흡입소음기":null,"극초저소음팬":3300000,"인버터판넬":9000000,"사다리":1200000,"설치비":1300000,"크레인비":null},"250":{"본체":21800000,"백연감소코일":9800000,"토출소음기":8855000,"흡입소음기":null,"극초저소음팬":3300000,"인버터판넬":9000000,"사다리":1200000,"설치비":1300000,"크레인비":null},"300":{"본체":21800000,"백연감소코일":9800000,"토출소음기":8855000,"흡입소음기":null,"극초저소음팬":3300000,"인버터판넬":9000000,"사다리":1200000,"설치비":1300000,"크레인비":null},"350":{"본체":27000000,"백연감소코일":10000000,"토출소음기":17000000,"흡입소음기":null,"극초저소음팬":4000000,"인버터판넬":9500000,"사다리":1200000,"설치비":1300000,"크레인비":null},"400":{"본체":28000000,"백연감소코일":10000000,"토출소음기":17000000,"흡입소음기":null,"극초저소음팬":4000000,"인버터판넬":9500000,"사다리":1500000,"설치비":1500000,"크레인비":null},"450":{"본체":28350000,"백연감소코일":10000000,"토출소음기":17000000,"흡입소음기":null,"극초저소음팬":5000000,"인버터판넬":9500000,"사다리":1500000,"설치비":1500000,"크레인비":null},"500":{"본체":31000000,"백연감소코일":22000000,"토출소음기":17000000,"흡입소음기":null,"극초저소음팬":5000000,"인버터판넬":9500000,"사다리":1500000,"설치비":1500000,"크레인비":null},"600":{"본체":35500000,"백연감소코일":22000000,"토출소음기":20000000,"흡입소음기":7200000,"극초저소음팬":5000000,"인버터판넬":10000000,"사다리":1500000,"설치비":1500000,"크레인비":3000000},"700":{"본체":35500000,"백연감소코일":24000000,"토출소음기":20000000,"흡입소음기":null,"극초저소음팬":5500000,"인버터판넬":10000000,"사다리":null,"설치비":null,"크레인비":null},"800":{"본체":35500000,"백연감소코일":24000000,"토출소음기":20000000,"흡입소음기":null,"극초저소음팬":6000000,"인버터판넬":10000000,"사다리":null,"설치비":null,"크레인비":null},"900":{"본체":37800000,"백연감소코일":29000000,"토출소음기":27000000,"흡입소음기":null,"극초저소음팬":7500000,"인버터판넬":11000000,"사다리":null,"설치비":null,"크레인비":null},"1000":{"본체":37800000,"백연감소코일":29000000,"토출소음기":27000000,"흡입소음기":null,"극초저소음팬":8000000,"인버터판넬":11000000,"사다리":null,"설치비":null,"크레인비":null}},"SJXO":{"100":{"본체":19700000,"백연감소코일":5000000,"토출소음기":3740000,"흡입소음기":4000000,"극초저소음팬":2000000,"인버터판넬":8000000,"사다리":1000000,"설치비":1500000,"크레인비":2500000},"125":{"본체":20100000,"백연감소코일":6400000,"토출소음기":3740000,"흡입소음기":4000000,"극초저소음팬":2000000,"인버터판넬":8000000,"사다리":1000000,"설치비":1500000,"크레인비":2500000},"150":{"본체":20100000,"백연감소코일":6400000,"토출소음기":3740000,"흡입소음기":4000000,"극초저소음팬":2000000,"인버터판넬":8000000,"사다리":1000000,"설치비":1500000,"크레인비":2500000},"175":{"본체":21250000,"백연감소코일":5040000,"토출소음기":4114000,"흡입소음기":4400000,"극초저소음팬":2500000,"인버터판넬":8000000,"사다리":1000000,"설치비":1500000,"크레인비":2500000},"200":{"본체":21250000,"백연감소코일":5760000,"토출소음기":4114000,"흡입소음기":4400000,"극초저소음팬":2500000,"인버터판넬":8500000,"사다리":1000000,"설치비":1500000,"크레인비":2500000},"225":{"본체":24500000,"백연감소코일":9700000,"토출소음기":4390100,"흡입소음기":5500000,"극초저소음팬":3000000,"인버터판넬":8500000,"사다리":1000000,"설치비":2000000,"크레인비":2500000},"250":{"본체":24500000,"백연감소코일":9700000,"토출소음기":4390100,"흡입소음기":5500000,"극초저소음팬":3000000,"인버터판넬":8500000,"사다리":1000000,"설치비":2000000,"크레인비":2500000},"300":{"본체":26950000,"백연감소코일":8640000,"토출소음기":4390100,"흡입소음기":5500000,"극초저소음팬":3000000,"인버터판넬":8500000,"사다리":1200000,"설치비":2000000,"크레인비":2500000},"350":{"본체":28700000,"백연감소코일":10700000,"토출소음기":4666200,"흡입소음기":6545000,"극초저소음팬":3500000,"인버터판넬":8500000,"사다리":1200000,"설치비":2000000,"크레인비":2500000},"400":{"본체":32200000,"백연감소코일":11200000,"토출소음기":5510000,"흡입소음기":7350000,"극초저소음팬":3500000,"인버터판넬":9000000,"사다리":1200000,"설치비":2000000,"크레인비":3500000},"450":{"본체":34000000,"백연감소코일":12000000,"토출소음기":5510000,"흡입소음기":7350000,"극초저소음팬":3500000,"인버터판넬":9000000,"사다리":1200000,"설치비":2000000,"크레인비":3500000},"500":{"본체":37000000,"백연감소코일":12000000,"토출소음기":5510000,"흡입소음기":7350000,"극초저소음팬":3500000,"인버터판넬":9000000,"사다리":1200000,"설치비":3000000,"크레인비":3500000},"600":{"본체":37000000,"백연감소코일":16700000,"토출소음기":6060000,"흡입소음기":8500000,"극초저소음팬":4500000,"인버터판넬":9000000,"사다리":1200000,"설치비":3000000,"크레인비":3500000},"700":{"본체":36800000,"백연감소코일":21260000,"토출소음기":6060000,"흡입소음기":8500000,"극초저소음팬":4500000,"인버터판넬":10000000,"사다리":1200000,"설치비":3000000,"크레인비":5000000},"800":{"본체":38200000,"백연감소코일":21260000,"토출소음기":6060000,"흡입소음기":8500000,"극초저소음팬":5400000,"인버터판넬":10000000,"사다리":1500000,"설치비":3000000,"크레인비":5000000},"900":{"본체":39000000,"백연감소코일":24000000,"토출소음기":7272000,"흡입소음기":10200000,"극초저소음팬":6000000,"인버터판넬":11000000,"사다리":1500000,"설치비":3000000,"크레인비":5000000},"1000":{"본체":39000000,"백연감소코일":24000000,"토출소음기":7272000,"흡입소음기":10200000,"극초저소음팬":6500000,"인버터판넬":11000000,"사다리":1500000,"설치비":3000000,"크레인비":5000000}}};
+
+const TYPE_NAMES = { 'SJMO':'압입모듈형', 'SJMO(A)':'흡입모듈형', 'SJCO':'대향류형', 'SJXO':'직교류형' };
+
+const OPTIONS_BY_TYPE = {
+  'SJMO': [
+    { key:'백연감소코일', label:'백연감소코일', desc:'백연 발생 저감용' },
+    { key:'소음기', label:'소음기 (흡입/토출)', desc:'소음 저감 패키지' },
+    { key:'인버터판넬', label:'인버터(운전비절감)판넬', desc:'VFD 운전비 절감' },
+    { key:'사다리', label:'사다리', desc:'점검용 사다리' },
+    { key:'설치비', label:'설치비', desc:'현장 설치 인건비' },
+    { key:'크레인비', label:'크레인 (반입비)', desc:'장비 반입 크레인 (현장 1회)' }
+  ],
+  'SJMO(A)': [
+    { key:'백연감소코일', label:'백연감소코일', desc:'백연 발생 저감용' },
+    { key:'소음기', label:'소음기 (흡입/토출)', desc:'소음 저감 패키지' },
+    { key:'인버터판넬', label:'인버터(운전비절감)판넬', desc:'VFD 운전비 절감' },
+    { key:'사다리', label:'사다리', desc:'점검용 사다리' },
+    { key:'설치비', label:'설치비', desc:'현장 설치 인건비' },
+    { key:'크레인비', label:'크레인 (반입비)', desc:'장비 반입 크레인 (현장 1회)' }
+  ],
+  'SJCO': [
+    { key:'백연감소코일', label:'백연감소코일', desc:'백연 발생 저감용' },
+    { key:'토출소음기', label:'토출소음기', desc:'토출측 소음 저감' },
+    { key:'흡입소음기', label:'흡입소음기', desc:'흡입측 소음 저감' },
+    { key:'극초저소음팬', label:'극초저소음팬', desc:'저소음 팬 업그레이드' },
+    { key:'인버터판넬', label:'인버터(운전비절감)판넬', desc:'VFD 운전비 절감' },
+    { key:'사다리', label:'사다리', desc:'점검용 사다리' },
+    { key:'설치비', label:'설치비', desc:'현장 설치 인건비' },
+    { key:'크레인비', label:'크레인 (반입비)', desc:'장비 반입 크레인 (현장 1회)' }
+  ],
+  'SJXO': [
+    { key:'백연감소코일', label:'백연감소코일', desc:'백연 발생 저감용' },
+    { key:'토출소음기', label:'토출소음기', desc:'토출측 소음 저감' },
+    { key:'흡입소음기', label:'흡입소음기', desc:'흡입측 소음 저감' },
+    { key:'극초저소음팬', label:'극초저소음팬', desc:'저소음 팬 업그레이드' },
+    { key:'인버터판넬', label:'인버터(운전비절감)판넬', desc:'VFD 운전비 절감' },
+    { key:'사다리', label:'사다리', desc:'점검용 사다리' },
+    { key:'설치비', label:'설치비', desc:'현장 설치 인건비' },
+    { key:'크레인비', label:'크레인 (반입비)', desc:'장비 반입 크레인 (현장 1회)' }
+  ]
+};
+
+const ONE_OFF_OPTIONS = ['크레인비'];
+const DEFAULT_STATE = () => ({ type:'SJMO', capacity:300, qty:1, options:{} });
+let state = DEFAULT_STATE();
+let cart = [];
+let roundUnit = 0;
+
+function formatNum(n) { return Math.round(n).toLocaleString('ko-KR'); }
+
+// === Type
+document.querySelectorAll('.type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.classList.contains('active')) return;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.type = btn.dataset.type;
+    state.options = {};
+    const caps = Object.keys(COST_DATA[state.type]).map(Number).sort((a,b)=>a-b);
+    if (!caps.includes(state.capacity)) {
+      state.capacity = caps.reduce((a,b)=>Math.abs(b-state.capacity)<Math.abs(a-state.capacity)?b:a);
+    }
+    renderCapacityButtons();
+    renderOptions();
+    updatePreview();
+  });
+});
+
+// === Capacity
+function renderCapacityButtons() {
+  const grid = document.getElementById('capacityGrid');
+  grid.innerHTML = '';
+  const ALL_CAPS = [100, 125, 150, 175, 200, 225, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000];
+  const availableCaps = Object.keys(COST_DATA[state.type]).map(Number);
+  ALL_CAPS.forEach(cap => {
+    const btn = document.createElement('button');
+    const available = availableCaps.includes(cap);
+    btn.className = 'cap-btn' + (cap === state.capacity ? ' active' : '') + (!available ? ' disabled' : '');
+    btn.textContent = cap;
+    if (available) {
+      btn.addEventListener('click', () => {
+        state.capacity = cap;
+        state.options = {};
+        renderCapacityButtons();
+        renderOptions();
+        updatePreview();
+      });
+    }
+    grid.appendChild(btn);
+  });
+}
+
+// === Options
+function renderOptions() {
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  const opts = OPTIONS_BY_TYPE[state.type];
+  const data = COST_DATA[state.type][state.capacity] || {};
+  opts.forEach(opt => {
+    const price = data[opt.key];
+    const available = price !== null && price !== undefined && price > 0;
+    const checked = !!state.options[opt.key] && available;
+    const item = document.createElement('div');
+    item.className = 'option-item' + (checked ? ' checked' : '') + (!available ? ' disabled' : '');
+    item.innerHTML = `
+      <div class="option-left">
+        <div class="option-checkbox"></div>
+        <div>
+          <div class="option-name">${opt.label}</div>
+          <div class="option-desc">${opt.desc}${ONE_OFF_OPTIONS.includes(opt.key) ? ' · 견적 1회' : ''}</div>
+        </div>
+      </div>
+      <div class="option-price">${available ? formatNum(price) + '원' : '제공 안 함'}</div>
+    `;
+    if (available) {
+      item.addEventListener('click', () => {
+        state.options[opt.key] = !state.options[opt.key];
+        renderOptions();
+        updatePreview();
+      });
+    }
+    grid.appendChild(item);
+  });
+}
+
+// === Quantity
+function changeQty(d) {
+  const inp = document.getElementById('qtyInput');
+  let v = parseInt(inp.value) + d;
+  v = Math.max(1, Math.min(50, v));
+  inp.value = v;
+  state.qty = v;
+  updatePreview();
+}
+document.getElementById('qtyInput').addEventListener('input', e => {
+  let v = parseInt(e.target.value) || 1;
+  v = Math.max(1, Math.min(50, v));
+  state.qty = v;
+  updatePreview();
+});
+
+function calculateUnitPrice() {
+  const data = COST_DATA[state.type][state.capacity] || {};
+  let total = data['본체'] || 0;
+  Object.keys(state.options).forEach(k => {
+    if (state.options[k] && data[k]) total += data[k];
+  });
+  return total;
+}
+
+function updatePreview() {
+  document.getElementById('previewAmount').textContent = formatNum(calculateUnitPrice()) + ' 원';
+}
+
+// === Add to Cart
+function addToCart() {
+  const data = COST_DATA[state.type][state.capacity];
+  if (!data) { showToast('해당 모델/용량의 데이터가 없습니다','error'); return; }
+  const lines = [{ name:'본체', unit:data['본체'], qty:state.qty, total:data['본체']*state.qty }];
+  OPTIONS_BY_TYPE[state.type].forEach(opt => {
+    if (state.options[opt.key] && data[opt.key]) {
+      const q = ONE_OFF_OPTIONS.includes(opt.key) ? 1 : state.qty;
+      lines.push({ name:opt.label, unit:data[opt.key], qty:q, total:data[opt.key]*q });
+    }
+  });
+  const itemTotal = lines.reduce((s,l)=>s+l.total, 0);
+  cart.push({
+    id: Date.now() + Math.random(),
+    isManual: false,
+    type: state.type,
+    typeName: TYPE_NAMES[state.type],
+    capacity: state.capacity,
+    qty: state.qty,
+    lines, total: itemTotal
+  });
+  renderCart();
+  showToast(`${TYPE_NAMES[state.type]} ${state.capacity}CRT × ${state.qty}대 추가됨`);
+  resetForm(true);
+}
+
+function removeCartItem(id) {
+  cart = cart.filter(c => c.id !== id);
+  renderCart();
+}
+
+function clearCart() {
+  if (cart.length === 0) return;
+  if (!confirm('원가 합산 내역을 모두 비우시겠습니까?')) return;
+  cart = [];
+  renderCart();
+  showToast('내역이 초기화되었습니다');
+}
+
+function renderCart() {
+  const wrap = document.getElementById('cartItems');
+  const summary = document.getElementById('cartSummary');
+  const pill = document.getElementById('cartCountPill');
+  const sub = document.getElementById('cartSub');
+
+  pill.textContent = `${cart.length}개`;
+  pill.classList.toggle('has', cart.length > 0);
+
+  if (cart.length === 0) {
+    sub.textContent = '좌측에서 항목을 추가하면 여기에 표시됩니다';
+    wrap.innerHTML = `
+      <div class="cart-empty">
+        <div class="icon-big">🛒</div>
+        <div class="text">좌측에서 모델을 선택하거나 직접 입력 후<br>「원가 합산 내역에 추가」를 클릭하세요</div>
+      </div>`;
+    summary.style.display = 'none';
+    updateQuote();
+    return;
+  }
+
+  sub.textContent = '항목 위에 마우스를 올리면 삭제할 수 있습니다';
+
+  wrap.innerHTML = cart.map(item => {
+    const linesHtml = item.lines.map(l => `
+      <div class="row">
+        <span>${l.name} (${formatNum(l.unit)} × ${l.qty})</span>
+        <span>${formatNum(l.total)}</span>
+      </div>
+    `).join('');
+    // For manual items, hide the "null CRT · 1대" subtitle
+    const subtitle = item.isManual
+      ? ''
+      : `<div class="cart-item-qty">${item.capacity} CRT · ${item.qty}대</div>`;
+    const titleText = item.isManual
+      ? `직접입력`
+      : `${item.typeName} (${item.type})`;
+    return `
+      <div class="cart-item">
+        <button class="cart-item-remove" onclick="removeCartItem(${item.id})" title="삭제">×</button>
+        <div class="cart-item-header">
+          <div>
+            <div class="cart-item-title">${titleText}</div>
+            ${subtitle}
+          </div>
+          <div class="cart-item-amount">${formatNum(item.total)} 원</div>
+        </div>
+        <div class="cart-item-detail">${linesHtml}</div>
+      </div>
+    `;
+  }).join('');
+
+  const equipSum = cart.reduce((s,c)=>s+c.total, 0);
+  const overhead = Math.round(equipSum * 0.15);
+  const grand = equipSum + overhead;
+  document.getElementById('sumEquipment').textContent = formatNum(equipSum) + ' 원';
+  document.getElementById('sumOverhead').textContent = formatNum(overhead) + ' 원';
+  document.getElementById('sumTotal').textContent = formatNum(grand) + ' 원';
+  summary.style.display = 'block';
+
+  updateQuote();
+}
+
+// === Reset
+function resetForm(silent) {
+  state = DEFAULT_STATE();
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === state.type));
+  document.getElementById('qtyInput').value = state.qty;
+  renderCapacityButtons();
+  renderOptions();
+  updatePreview();
+  if (!silent) showToast('입력이 초기화되었습니다');
+}
+
+// === Copy
+function copyToClipboard() {
+  if (cart.length === 0) { showToast('원가 합산 내역이 비어 있습니다','error'); return; }
+  let txt = '[냉각탑 원가 합산]\n' + '='.repeat(60) + '\n\n';
+  cart.forEach((item, i) => {
+    const head = item.isManual ? `직접입력` : `${item.typeName} (${item.type}) ${item.capacity}CRT × ${item.qty}대`;
+    txt += `${i+1}. ${head}\n`;
+    item.lines.forEach(l => {
+      txt += `   · ${l.name.padEnd(20)} ${formatNum(l.unit).padStart(12)} × ${l.qty} = ${formatNum(l.total)}원\n`;
+    });
+    txt += `   소계: ${formatNum(item.total)}원\n\n`;
+  });
+  const equipSum = cart.reduce((s,c)=>s+c.total, 0);
+  const overhead = Math.round(equipSum * 0.15);
+  const grand = equipSum + overhead;
+  txt += '='.repeat(60) + '\n';
+  txt += `장비/항목 합계   : ${formatNum(equipSum)} 원\n`;
+  txt += `일반관리비 (15%) : ${formatNum(overhead)} 원\n`;
+  txt += `총 원가          : ${formatNum(grand)} 원\n`;
+  navigator.clipboard.writeText(txt).then(
+    ()=>showToast('내역이 복사되었습니다'),
+    ()=>showToast('복사 실패','error')
+  );
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// === Manual Entry ===
+function updateManualPreview() {
+  const qty = parseInt(document.getElementById('manualQty').value) || 0;
+  const amt = parseFloat(document.getElementById('manualAmount').value) || 0;
+  document.getElementById('manualPreview').textContent = formatNum(qty * amt) + ' 원';
+}
+
+function addManualToCart() {
+  const name = document.getElementById('manualName').value.trim();
+  const qty = parseInt(document.getElementById('manualQty').value) || 0;
+  const amt = parseFloat(document.getElementById('manualAmount').value) || 0;
+  if (!name) { showToast('내역(품명)을 입력하세요','error'); return; }
+  if (qty <= 0 || amt <= 0) { showToast('수량과 금액을 입력하세요','error'); return; }
+  const total = qty * amt;
+  cart.push({
+    id: Date.now() + Math.random(),
+    isManual: true,
+    type: '직접입력',
+    typeName: name,
+    capacity: null,
+    qty,
+    lines: [{ name, unit: amt, qty, total }],
+    total
+  });
+  renderCart();
+  showToast(`「${name}」 추가됨`);
+  resetManualForm(true);
+}
+
+function resetManualForm(silent) {
+  document.getElementById('manualName').value = '';
+  document.getElementById('manualQty').value = 1;
+  document.getElementById('manualAmount').value = '';
+  updateManualPreview();
+  if (!silent) showToast('직접입력 칸이 초기화되었습니다');
+}
+
+['manualQty','manualAmount'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateManualPreview);
+});
+
+// === Quote ===
+const ROUND_LABEL = {
+  '0':'절사 안 함', '1000000':'10만이하 절사',
+  '10000000':'100만이하 절사', '100000000':'1000만이하 절사'
+};
+
+document.querySelectorAll('.round-chk').forEach(label => {
+  label.addEventListener('click', e => {
+    e.preventDefault();
+    const u = parseInt(label.dataset.unit);
+    roundUnit = u;
+    document.querySelectorAll('.round-chk').forEach(l => {
+      const isActive = parseInt(l.dataset.unit) === roundUnit;
+      l.classList.toggle('active', isActive);
+      l.querySelector('input').checked = isActive;
+    });
+    updateQuote();
+  });
+});
+
+document.getElementById('divisorInput').addEventListener('input', updateQuote);
+
+function getGrandTotal() {
+  const equipSum = cart.reduce((s,c)=>s+c.total, 0);
+  return equipSum + Math.round(equipSum * 0.15);
+}
+
+function updateQuote() {
+  const grand = getGrandTotal();
+  document.getElementById('quoteBaseAmount').textContent = formatNum(grand) + ' 원';
+  const div = parseFloat(document.getElementById('divisorInput').value);
+  if (!div || div <= 0 || div > 1) {
+    document.getElementById('quoteResult').textContent = '—';
+    document.getElementById('quoteResultDetail').textContent = '비율은 0보다 크고 1 이하여야 합니다';
+    return;
+  }
+  if (grand === 0) {
+    document.getElementById('quoteResult').textContent = '0';
+    document.getElementById('quoteResultDetail').textContent = '원가 합산 내역이 비어 있습니다';
+    return;
+  }
+  const raw = grand / div;
+  const result = roundUnit > 0 ? Math.floor(raw / roundUnit) * roundUnit : Math.round(raw);
+  document.getElementById('quoteResult').textContent = formatNum(result);
+  document.getElementById('quoteResultDetail').textContent =
+    `${formatNum(grand)} ÷ ${div} = ${formatNum(Math.round(raw))} 원 → ${ROUND_LABEL[String(roundUnit)]}`;
+}
+
+function copyQuote() {
+  const grand = getGrandTotal();
+  if (grand === 0) { showToast('원가 합산 내역이 비어 있습니다','error'); return; }
+  const div = parseFloat(document.getElementById('divisorInput').value);
+  if (!div || div <= 0 || div > 1) { showToast('비율을 확인하세요','error'); return; }
+  const raw = grand / div;
+  const result = roundUnit > 0 ? Math.floor(raw/roundUnit)*roundUnit : Math.round(raw);
+  let txt = '[견적가 산정]\n' + '='.repeat(40) + '\n';
+  txt += `총 원가      : ${formatNum(grand)} 원\n`;
+  txt += `나눌 비율    : ${div}\n`;
+  txt += `절사 옵션    : ${ROUND_LABEL[String(roundUnit)]}\n`;
+  txt += `─────────────────────────────────\n`;
+  txt += `예상 견적가  : ${formatNum(result)} 원\n`;
+  navigator.clipboard.writeText(txt).then(
+    ()=>showToast('견적가가 복사되었습니다'),
+    ()=>showToast('복사 실패','error')
+  );
+}
+
+// Init
+renderCapacityButtons();
+renderOptions();
+updatePreview();
+renderCart();
+updateManualPreview();
+</script>
+
+</body>
+</html>
