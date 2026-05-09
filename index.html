@@ -369,6 +369,138 @@ body {
   top: 20px;
 }
 
+/* Lock states - apply to entire main-grid */
+.main-grid {
+  position: relative;
+}
+.main-grid.locked .card,
+.main-grid.locked .cart-card,
+.main-grid.locked .quote-card,
+.main-grid.locked .notes-card {
+  filter: blur(3px);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Lock overlay - fixed centered modal */
+.lock-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 100;
+  background: rgba(243, 244, 246, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.lock-overlay.show { display: flex; }
+.lock-card {
+  background: white;
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(37,99,235,0.18);
+  padding: 32px 28px;
+  width: 90%;
+  max-width: 360px;
+  text-align: center;
+}
+.lock-icon-wrap {
+  width: 56px; height: 56px;
+  background: var(--primary-soft);
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin-bottom: 14px;
+}
+.lock-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 6px;
+}
+.lock-desc {
+  font-size: 12.5px;
+  color: var(--gray-500);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+.lock-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.15s;
+  background: white;
+  color: var(--gray-900);
+  text-align: center;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.lock-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.lock-input.error {
+  border-color: var(--red);
+  animation: shake 0.35s ease;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+.lock-error-msg {
+  font-size: 11.5px;
+  color: var(--red);
+  margin-bottom: 10px;
+  height: 14px;
+  font-weight: 600;
+  visibility: hidden;
+}
+.lock-error-msg.show { visibility: visible; }
+.lock-submit {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.lock-submit:hover { background: var(--primary-dark); }
+
+/* Header lock status */
+.lock-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.18);
+  padding: 6px 12px;
+  border-radius: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: none;
+  font-family: inherit;
+}
+.lock-status:hover { background: rgba(255,255,255,0.28); }
+.lock-status.unlocked { background: rgba(16,185,129,0.4); }
+
 /* Cart Card */
 .cart-card {
   background: white;
@@ -731,10 +863,14 @@ body {
       <span class="badge">SJMO · SJMO(A) · SJCO · SJXO</span>
       <span class="badge">100~1000 CRT</span>
       <span class="badge">원가 누적 + 견적가 산정</span>
+      <button class="lock-status" id="lockStatus" onclick="toggleLock()">
+        <span id="lockStatusIcon">🔒</span>
+        <span id="lockStatusText">잠금</span>
+      </button>
     </div>
   </div>
 
-  <div class="main-grid">
+  <div class="main-grid locked" id="mainGrid">
     <!-- Left -->
     <div>
       <!-- Section 1 -->
@@ -852,7 +988,7 @@ body {
     </div>
 
     <!-- Right Column - sticky stack -->
-    <div class="right-stack">
+    <div class="right-stack" id="rightStack">
       <!-- Cart -->
       <div class="cart-card">
         <div class="cart-header-bar">
@@ -941,6 +1077,18 @@ body {
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Lock Overlay (covers whole viewport) -->
+<div class="lock-overlay show" id="lockOverlay">
+  <div class="lock-card">
+    <div class="lock-icon-wrap">🔒</div>
+    <div class="lock-title">잠금 해제 필요</div>
+    <div class="lock-desc">프로그램을 사용하려면<br>비밀번호를 입력해주세요</div>
+    <input type="password" class="lock-input" id="lockInput" placeholder="비밀번호" autocomplete="off">
+    <div class="lock-error-msg" id="lockError">비밀번호가 올바르지 않습니다</div>
+    <button class="lock-submit" onclick="checkPassword()">잠금 해제</button>
   </div>
 </div>
 
@@ -1356,13 +1504,79 @@ function copyQuote() {
   );
 }
 
+// === Password Lock ===
+const PASSWORDS = ['영업1팀@', 'duddjq1xla@'];
+let isUnlocked = false;
+
+function checkPassword() {
+  const input = document.getElementById('lockInput');
+  const errorMsg = document.getElementById('lockError');
+  if (PASSWORDS.includes(input.value)) {
+    unlockUI();
+    input.classList.remove('error');
+    errorMsg.classList.remove('show');
+  } else {
+    input.classList.add('error');
+    errorMsg.classList.add('show');
+    input.value = '';
+    input.focus();
+    setTimeout(() => input.classList.remove('error'), 400);
+  }
+}
+
+function unlockUI() {
+  isUnlocked = true;
+  document.getElementById('mainGrid').classList.remove('locked');
+  const ov = document.getElementById('lockOverlay');
+  ov.classList.remove('show');
+  ov.style.display = 'none';
+  document.getElementById('lockStatus').classList.add('unlocked');
+  document.getElementById('lockStatusIcon').textContent = '🔓';
+  document.getElementById('lockStatusText').textContent = '잠금 해제됨';
+  showToast('잠금이 해제되었습니다');
+}
+
+function lockUI() {
+  isUnlocked = false;
+  document.getElementById('mainGrid').classList.add('locked');
+  const ov = document.getElementById('lockOverlay');
+  ov.style.display = 'flex';
+  ov.classList.add('show');
+  document.getElementById('lockStatus').classList.remove('unlocked');
+  document.getElementById('lockStatusIcon').textContent = '🔒';
+  document.getElementById('lockStatusText').textContent = '잠금';
+  document.getElementById('lockInput').value = '';
+  document.getElementById('lockInput').focus();
+}
+
+function toggleLock() {
+  if (isUnlocked) {
+    if (confirm('다시 잠그시겠습니까? 비밀번호를 다시 입력해야 사용할 수 있습니다.')) {
+      lockUI();
+    }
+  } else {
+    document.getElementById('lockInput').focus();
+  }
+}
+
+document.getElementById('lockInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+
 // Init
 renderCapacityButtons();
 renderOptions();
 updatePreview();
 renderCart();
 updateManualPreview();
+
+// Auto-focus password input on load
+setTimeout(() => {
+  const inp = document.getElementById('lockInput');
+  if (inp && !isUnlocked) inp.focus();
+}, 200);
 </script>
 
 </body>
 </html>
+
